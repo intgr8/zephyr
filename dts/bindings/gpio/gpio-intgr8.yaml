@@ -1,0 +1,44 @@
+# Copyright (c) 2018, Linaro Limited
+# SPDX-License-Identifier: Apache-2.0
+# Copyright: INTGR8
+
+description: GPIO for INTGR8 parent node
+
+compatible: "gpio-intgr8"
+
+include:
+    - name: base.yaml
+      property-allowlist: [label]
+
+properties:
+    label:
+      description: |
+        Human readable string describing the device and used to set the device
+        name. It can be passed as argument to device_get_binding() to retrieve
+        the device. If this property is omitted, then the device name is set
+        from the node full name. This is not fully implemented.
+
+child-binding:
+    description: GPIO child node
+    properties:
+       gpios:
+          type: phandle-array
+          required: true
+       
+       pinctrl-0:
+          type: phandles
+          required: true
+          description: |
+            GPIO pin configuration for serial signals (RX, TX, RTS, CTS).  We expect
+            that the phandles will reference pinctrl nodes.
+
+            For example the USART1 would be
+              pinctrl-0 = <&usart1_tx_pb6 &usart1_rx_pb7>;
+
+       label:
+          required: false
+          type: string
+          description: |
+            Human readable string describing the LED. It can be used by an
+            application to identify this LED or to retrieve its number/index
+            (i.e. child node number) on the parent device.
