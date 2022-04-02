@@ -12,7 +12,6 @@
 /**
  * @todo this is temporary. This needs ASAP cleanup.
  */
-
 #include <logging/log.h>
 LOG_MODULE_REGISTER(net_mqtt_sock_tls, CONFIG_MQTT_LOG_LEVEL);
 
@@ -276,12 +275,16 @@ int mqtt_client_tls_read(struct mqtt_client *client, uint8_t *data, uint32_t buf
 	return ret;
 }
 
+extern int32_t NetworkFeatureCloseSocket(void);
 int mqtt_client_tls_disconnect(struct mqtt_client *client)
 {
 	int ret;
 
 	MQTT_TRC("Closing socket %d", client->transport.tls.sock);
+#if 0
 	ret = zsock_close(client->transport.tls.sock);
+#endif /* This code is disabled. */
+  ret = NetworkFeatureCloseSocket();
 	if (ret < 0) {
 		return -errno;
 	}
