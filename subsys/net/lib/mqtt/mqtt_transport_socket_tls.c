@@ -156,6 +156,7 @@ int mqtt_client_tls_write(struct mqtt_client *client, const uint8_t *data,
 int mqtt_client_tls_write_msg(struct mqtt_client *client,
 			      const struct msghdr* message)
 {
+#if 0
 	int ret, i;
 	size_t offset = 0;
 	size_t total_len = 0;
@@ -171,10 +172,13 @@ int mqtt_client_tls_write_msg(struct mqtt_client *client,
 
 	while (offset < total_len) 
   {
+#endif
+
 #if 0
 		ret = zsock_sendmsg(client->transport.tls.sock, message, 0);
 #endif /* This code is disabled. */
 
+#if 0
 	  len = 0;
     ret = -1;
     if (message)
@@ -225,6 +229,47 @@ int mqtt_client_tls_write_msg(struct mqtt_client *client,
     {
 			if (ret < message->msg_iov[i].iov_len)
       {
+				message->msg_iov[i].iov_len -= ret;
+				message->msg_iov[i].iov_base =
+					(uint8_t *)message->msg_iov[i].iov_base + ret;
+				break;
+			}
+
+			ret -= message->msg_iov[i].iov_len;
+			message->msg_iov[i].iov_len = 0;
+		}
+	}
+
+	return 0;
+#endif /* This code is disabled. */
+
+
+
+  int ret, i;
+	size_t offset = 0;
+	size_t total_len = 0;
+
+	for (i = 0; i < message->msg_iovlen; i++) {
+		total_len += message->msg_iov[i].iov_len;
+	}
+
+  i = 0;
+	while (offset < total_len) {
+		// ret = zsock_sendmsg(client->transport.tls.sock, message, 0);
+    ret = (int) NetworkFeatureTLSWriteLte((const uint8_t *)message->msg_iov[i].iov_base,
+                                          (uint32_t)(message->msg_iov[i].iov_len));
+		if (ret < 0) {
+			return -errno;
+		}
+
+		offset += ret;
+		if (offset >= total_len) {
+			break;
+		}
+
+		/* Update msghdr for the next iteration. */
+		for (i = 0; i < message->msg_iovlen; i++) {
+			if (ret < message->msg_iov[i].iov_len) {
 				message->msg_iov[i].iov_len -= ret;
 				message->msg_iov[i].iov_base =
 					(uint8_t *)message->msg_iov[i].iov_base + ret;
