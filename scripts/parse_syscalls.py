@@ -77,7 +77,9 @@ def analyze_headers(multiple_directories):
                     continue
 
                 with open(path, "r", encoding="utf-8") as fp:
+                    #print(path)
                     contents = fp.read()
+                    #print("Done")
 
                 try:
                     syscall_result = [(mo.groups(), fn)
