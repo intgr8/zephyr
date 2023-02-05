@@ -228,30 +228,29 @@ int can_mcan_init(const struct device *dev, const struct can_mcan_config *cfg,
 		k_sem_init(&data->tx_fin_sem[i], 0, 1);
 	}
 
-  /**
-   * @brief Clear ARA error.
-   * 
-   * @todo Figure out why we start in error state. 
-   * 
-   */
+  	/**
+	 * @brief Clear ARA error.
+	 * 
+	 * @todo Figure out why we start in error state. 
+	 * 
+	 */
+	can->ir  = CAN_MCAN_IR_ARA;
 
-  can->ir |= CAN_MCAN_IR_ARA;
-
-  /* Check Sleep mode acknowledge */
+  	/* Check Sleep mode acknowledge */
 	ret = can_exit_sleep_mode(can);
 	if (ret) {
 		LOG_ERR("Failed to exit sleep mode");
 		return -EIO;
 	}
-  printk("Driver is awake!\n");
+  	printk("Driver is awake!\n");
 
-  /* Request initialisation */
+  	/* Request initialisation */
 	ret = can_enter_init_mode(can, K_MSEC(CAN_INIT_TIMEOUT));
 	if (ret) {
 		LOG_ERR("Failed to enter init mode");
 		return -EIO;
 	}
-  printk("Driver is initialized.\n");
+  	printk("Driver is initialized.\n");
 
 	/* Configuration Change Enable */
 	can->cccr |= CAN_MCAN_CCCR_CCE;
@@ -304,7 +303,7 @@ int can_mcan_init(const struct device *dev, const struct can_mcan_config *cfg,
 	}
 
 #else
-  printk("CONFIG_CAN_STM32FD is defined.\n");
+#pragma message("INTGR8: Correct configuration for stm32 FDCAN")
 #endif
 
   /**
@@ -323,26 +322,26 @@ int can_mcan_init(const struct device *dev, const struct can_mcan_config *cfg,
 	can->cccr |= CAN_MCAN_CCCR_FDOE | CAN_MCAN_CCCR_BRSE;
   printk("Configure FDCAN frame format\n");
 #else
-	can->cccr &= ~(CAN_MCAN_CCCR_FDOE | CAN_MCAN_CCCR_BRSE);
 #error Wrong configuration for FD mode.
+	can->cccr &= ~(CAN_MCAN_CCCR_FDOE | CAN_MCAN_CCCR_BRSE);
 #endif
-  /* Reset FDCAN Operation Mode */
+	/* Reset FDCAN Operation Mode */
 	can->cccr &= ~(CAN_MCAN_CCCR_TEST | CAN_MCAN_CCCR_MON |
-		       CAN_MCAN_CCCR_ASM);
+				CAN_MCAN_CCCR_ASM);
 	can->test &= ~(CAN_MCAN_TEST_LBCK);
-  	can->cccr |= CAN_MCAN_CCCR_FDOE | CAN_MCAN_CCCR_BRSE;
-  printk("Configure FDCAN normal operation.\n");
+	can->cccr |= CAN_MCAN_CCCR_FDOE | CAN_MCAN_CCCR_BRSE;
+  	printk("Configure FDCAN normal operation.\n");
 #if defined(CONFIG_CAN_DELAY_COMP) && defined(CONFIG_CAN_FD_MODE)
+#error Wrong configuration for FD delay.
 	can->dbtp |= CAN_MCAN_DBTP_TDC;
 	can->tdcr |=  cfg->tx_delay_comp_offset << CAN_MCAN_TDCR_TDCO_POS;
-#error Wrong configuration for FD delay.
 #endif
 
-/**
- * @brief Currently setting TX QUEUE.
- * 
- */
-can->txbc |= CAN_MCAN_TXBC_TFQM;
+	/**
+	 * @brief Currently setting TX QUEUE.
+	 * 
+	 */
+	can->txbc |= CAN_MCAN_TXBC_TFQM;
 
 #ifdef CONFIG_CAN_STM32FD
 	can->rxgfc |= (CONFIG_CAN_MAX_STD_ID_FILTER << CAN_MCAN_RXGFC_LSS_POS) |
@@ -350,9 +349,9 @@ can->txbc |= CAN_MCAN_TXBC_TFQM;
 		      (0x2 << CAN_MCAN_RXGFC_ANFS_POS) |
 		      (0x2 << CAN_MCAN_RXGFC_ANFE_POS);
 #else
+	#error Wrong configuration for FD gfc.
 	can->gfc |= (0x2 << CAN_MCAN_GFC_ANFE_POS) |
 		    (0x2 << CAN_MCAN_GFC_ANFS_POS);
-#error Wrong configuration for FD gfc.
 #endif /* CONFIG_CAN_STM32FD */
 
 	if (cfg->sample_point) {
@@ -423,7 +422,13 @@ can->txbc |= CAN_MCAN_TXBC_TFQM;
 	/* Interrupt on every TX fifo element*/
 	can->txbtie = CAN_MCAN_TXBTIE_TIE;
 
-  can->ir = CAN_MCAN_IR_ARA;
+	/**
+	 * @brief Clear ARA error.
+	 * 
+	 * @todo Figure out why we start in error state. 
+	 * 
+	 */
+  	can->ir = CAN_MCAN_IR_ARA;
 
 	ret = can_leave_init_mode(can, K_MSEC(CAN_INIT_TIMEOUT));
 	if (ret) {
@@ -431,7 +436,13 @@ can->txbc |= CAN_MCAN_TXBC_TFQM;
 		return -EIO;
 	}
 
-  can->ir = CAN_MCAN_IR_ARA;
+	/**
+	 * @brief Clear ARA error.
+	 * 
+	 * @todo Figure out why we start in error state. 
+	 * 
+	 */
+  	can->ir = CAN_MCAN_IR_ARA;
 
 	/* No memset because only aligned ptr are allowed */
 	for (uint32_t *ptr = (uint32_t *)msg_ram;
