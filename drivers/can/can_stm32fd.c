@@ -40,8 +40,12 @@ int can_stm32fd_get_core_clock(const struct device *dev, uint32_t *rate)
 
 void can_stm32fd_clock_enable(void)
 {
-	LL_RCC_SetFDCANClockSource(LL_RCC_FDCAN_CLKSOURCE_PCLK1);
-	__HAL_RCC_FDCAN_CLK_ENABLE();
+	/**
+	 * @todo confirm if this is needed.
+	*/
+  	__HAL_RCC_FDCAN_CLK_ENABLE();
+	LL_RCC_SetFDCANClockSource(LL_RCC_FDCAN_CLKSOURCE_HSE);
+
 
 	FDCAN_CONFIG->CKDIV = CONFIG_CAN_STM32_CLOCK_DIVISOR >> 1;
 }

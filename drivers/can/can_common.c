@@ -283,5 +283,5 @@ int can_calc_prescaler(const struct device *dev, struct can_timing *timing,
 
 	timing->prescaler = core_clock / (bitrate * ts);
 
-	return core_clock % (ts * timing->prescaler);
+	return ((core_clock % (ts * timing->prescaler)));
 }
