@@ -363,10 +363,18 @@
         reg-names = "m_can", "message_ram";
         interrupts = <39 0>, <40 0>;
         interrupt-names = "LINE_0", "LINE_1";
-        status = "disabled";
-        label = "CAN_1";
-        bus-speed-data = <250000>;
-        sjw-data = <1>;
+        status = "enabled";
+        label = "CAN_2";
+        bus-speed = <500000>;
+        sjw = <4>;
+        prop-seg = <1>;
+        phase-seg1 = <12>;
+        phase-seg2 = <2>;
+        bus-speed-data = <500000>;
+        sjw-data = <4>;
+        prop-seg-data = <1>;
+        phase-seg1-data = <12>;
+        phase-seg2-data = <2>;
       };
     };
 

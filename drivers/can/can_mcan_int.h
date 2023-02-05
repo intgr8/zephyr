@@ -406,7 +406,7 @@
 #define CAN_MCAN_IR_ARA              CAN_MCAN_IR_ARA_MSK
 
 #else /* CONFIG_CAN_STM32FD */
-
+#error Wrong configuration for CONFIG_CAN_STM32FD FDCAN
 /* Rx FIFO 0 New Message */
 #define CAN_MCAN_IR_RF0N_POS         (0U)
 #define CAN_MCAN_IR_RF0N_MSK         (0x1UL << CAN_MCAN_IR_RF0N_POS)

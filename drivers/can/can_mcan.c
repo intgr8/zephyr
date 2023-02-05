@@ -228,17 +228,30 @@ int can_mcan_init(const struct device *dev, const struct can_mcan_config *cfg,
 		k_sem_init(&data->tx_fin_sem[i], 0, 1);
 	}
 
+  /**
+   * @brief Clear ARA error.
+   * 
+   * @todo Figure out why we start in error state. 
+   * 
+   */
+
+  can->ir |= CAN_MCAN_IR_ARA;
+
+  /* Check Sleep mode acknowledge */
 	ret = can_exit_sleep_mode(can);
 	if (ret) {
 		LOG_ERR("Failed to exit sleep mode");
 		return -EIO;
 	}
+  printk("Driver is awake!\n");
 
+  /* Request initialisation */
 	ret = can_enter_init_mode(can, K_MSEC(CAN_INIT_TIMEOUT));
 	if (ret) {
 		LOG_ERR("Failed to enter init mode");
 		return -EIO;
 	}
+  printk("Driver is initialized.\n");
 
 	/* Configuration Change Enable */
 	can->cccr |= CAN_MCAN_CCCR_CCE;
@@ -253,6 +266,7 @@ int can_mcan_init(const struct device *dev, const struct can_mcan_config *cfg,
 		(can->crel & CAN_MCAN_CREL_DAY) >> CAN_MCAN_CREL_DAY_POS);
 
 #ifndef CONFIG_CAN_STM32FD
+#error Wrong configuration for stm32 FDCAN
 	can->sidfc = ((uint32_t)msg_ram->std_filt & CAN_MCAN_SIDFC_FLSSA_MSK) |
 		     (ARRAY_SIZE(msg_ram->std_filt) << CAN_MCAN_SIDFC_LSS_POS);
 	can->xidfc = ((uint32_t)msg_ram->ext_filt & CAN_MCAN_XIDFC_FLESA_MSK) |
@@ -288,22 +302,47 @@ int can_mcan_init(const struct device *dev, const struct can_mcan_config *cfg,
 			     (((sizeof(msg_ram->rx_buffer[0].data) - 32)
 				/ 16 + 5) << CAN_MCAN_RXESC_RBDS_POS);
 	}
+
+#else
+  printk("CONFIG_CAN_STM32FD is defined.\n");
 #endif
 
+  /**
+   * @brief  Currently these feature are disabled:
+   *      - re-transmission
+   *      - transmit-pause
+   *      - protocol exception handling
+   * 
+   */
+  can->cccr &= ~(CAN_MCAN_CCCR_DAR | CAN_MCAN_CCCR_TXP);
+  can->cccr |= CAN_MCAN_CCCR_PXHD;
+  printk("Config some features disabled.\n");
+
 #ifdef CONFIG_CAN_FD_MODE
+  /* Set FDCAN Frame Format */
 	can->cccr |= CAN_MCAN_CCCR_FDOE | CAN_MCAN_CCCR_BRSE;
+  printk("Configure FDCAN frame format\n");
 #else
 	can->cccr &= ~(CAN_MCAN_CCCR_FDOE | CAN_MCAN_CCCR_BRSE);
+#error Wrong configuration for FD mode.
 #endif
+  /* Reset FDCAN Operation Mode */
 	can->cccr &= ~(CAN_MCAN_CCCR_TEST | CAN_MCAN_CCCR_MON |
 		       CAN_MCAN_CCCR_ASM);
 	can->test &= ~(CAN_MCAN_TEST_LBCK);
-
+  	can->cccr |= CAN_MCAN_CCCR_FDOE | CAN_MCAN_CCCR_BRSE;
+  printk("Configure FDCAN normal operation.\n");
 #if defined(CONFIG_CAN_DELAY_COMP) && defined(CONFIG_CAN_FD_MODE)
 	can->dbtp |= CAN_MCAN_DBTP_TDC;
 	can->tdcr |=  cfg->tx_delay_comp_offset << CAN_MCAN_TDCR_TDCO_POS;
-
+#error Wrong configuration for FD delay.
 #endif
+
+/**
+ * @brief Currently setting TX QUEUE.
+ * 
+ */
+can->txbc |= CAN_MCAN_TXBC_TFQM;
 
 #ifdef CONFIG_CAN_STM32FD
 	can->rxgfc |= (CONFIG_CAN_MAX_STD_ID_FILTER << CAN_MCAN_RXGFC_LSS_POS) |
@@ -313,6 +352,7 @@ int can_mcan_init(const struct device *dev, const struct can_mcan_config *cfg,
 #else
 	can->gfc |= (0x2 << CAN_MCAN_GFC_ANFE_POS) |
 		    (0x2 << CAN_MCAN_GFC_ANFS_POS);
+#error Wrong configuration for FD gfc.
 #endif /* CONFIG_CAN_STM32FD */
 
 	if (cfg->sample_point) {
@@ -355,6 +395,8 @@ int can_mcan_init(const struct device *dev, const struct can_mcan_config *cfg,
 			LOG_WRN("Dataphase bitrate error: %d", ret);
 		}
 	}
+#else
+#error Wrong configuration for FD mode sample.
 #endif
 
 	timing.sjw = cfg->sjw;
@@ -363,6 +405,7 @@ int can_mcan_init(const struct device *dev, const struct can_mcan_config *cfg,
 	can_mcan_configure_timing(can, &timing, &timing_data);
 #else
 	can_mcan_configure_timing(can, &timing, NULL);
+#error Wrong configuration for FD sjw.
 #endif
 
 	can->ie = CAN_MCAN_IE_BO | CAN_MCAN_IE_EW | CAN_MCAN_IE_EP |
@@ -374,16 +417,21 @@ int can_mcan_init(const struct device *dev, const struct can_mcan_config *cfg,
 	can->ils = CAN_MCAN_ILS_RXFIFO0 | CAN_MCAN_ILS_RXFIFO1;
 #else
 	can->ils = CAN_MCAN_ILS_RF0N | CAN_MCAN_ILS_RF1N;
+#error Wrong configuration for FD ILS.
 #endif
 	can->ile = CAN_MCAN_ILE_EINT0 | CAN_MCAN_ILE_EINT1;
 	/* Interrupt on every TX fifo element*/
 	can->txbtie = CAN_MCAN_TXBTIE_TIE;
+
+  can->ir = CAN_MCAN_IR_ARA;
 
 	ret = can_leave_init_mode(can, K_MSEC(CAN_INIT_TIMEOUT));
 	if (ret) {
 		LOG_ERR("Failed to leave init mode");
 		return -EIO;
 	}
+
+  can->ir = CAN_MCAN_IR_ARA;
 
 	/* No memset because only aligned ptr are allowed */
 	for (uint32_t *ptr = (uint32_t *)msg_ram;
@@ -472,7 +520,7 @@ void can_mcan_line_0_isr(const struct can_mcan_config *cfg,
 		}
 
 	} while (can->ir & (CAN_MCAN_IR_BO | CAN_MCAN_IR_EW | CAN_MCAN_IR_EP |
-			    CAN_MCAN_IR_TEFL | CAN_MCAN_IR_TEFN));
+			    CAN_MCAN_IR_TEFL | CAN_MCAN_IR_TEFN | CAN_MCAN_IR_ARA));
 }
 
 static void can_mcan_get_message(struct can_mcan_data *data,
