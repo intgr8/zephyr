@@ -241,6 +241,7 @@ if(SUPPORTS_DTS)
   --edt-pickle-out ${EDT_PICKLE}
   ${EXTRA_GEN_DEFINES_ARGS}
   )
+  # message(FATAL_ERROR "${CMD_EXTRACT}")
 
   execute_process(
     COMMAND ${CMD_EXTRACT}
